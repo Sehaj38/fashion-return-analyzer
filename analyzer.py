@@ -7,8 +7,17 @@ load_dotenv()
 
 def setup_groq():
     api_key = os.getenv("GROQ_API_KEY")
+    
     if not api_key:
-        raise ValueError("GROQ_API_KEY not found. Check your .env file")
+        try:
+            import streamlit as st
+            api_key = st.secrets["GROQ_API_KEY"]
+        except:
+            pass
+
+    if not api_key:
+        raise ValueError("GROQ_API_KEY not found!")
+
     client = Groq(api_key=api_key)
     return client
 
