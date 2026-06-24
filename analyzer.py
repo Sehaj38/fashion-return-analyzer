@@ -14,37 +14,38 @@ def setup_groq():
 
 def analyze_reviews(reviews_text):
     prompt = f"""
-    You are a fashion retail analyst helping reduce product returns.
+    You are a fashion retail analyst. Your response must be a single valid JSON object.
     
-    Analyze the following customer reviews and respond ONLY with a JSON object.
-    No explanation, no markdown, no extra text. Just raw JSON.
+    STRICT RULES:
+    - Return ONLY the JSON object
+    - NO markdown, NO code fences, NO backticks
+    - NO comments inside JSON
+    - NO trailing commas
+    - All strings must use double quotes
+    - score must be an integer between 0 and 100
+    - level must be exactly one of: Low, Medium, High
     
-    The JSON must follow this exact structure:
+    Required JSON structure:
     {{
         "top_complaints": [
-            {{"complaint": "complaint title", "description": "brief explanation"}},
-            {{"complaint": "complaint title", "description": "brief explanation"}},
-            {{"complaint": "complaint title", "description": "brief explanation"}}
+            {{"complaint": "title here", "description": "explanation here"}},
+            {{"complaint": "title here", "description": "explanation here"}},
+            {{"complaint": "title here", "description": "explanation here"}}
         ],
         "return_risk": {{
             "level": "High",
-            "score": 78,
-            "reason": "one sentence explanation"
+            "score": 75,
+            "reason": "one sentence explanation here"
         }},
         "recommendations": [
-            {{"title": "recommendation title", "action": "specific action to take"}},
-            {{"title": "recommendation title", "action": "specific action to take"}},
-            {{"title": "recommendation title", "action": "specific action to take"}}
+            {{"title": "title here", "action": "action here"}},
+            {{"title": "title here", "action": "action here"}},
+            {{"title": "title here", "action": "action here"}}
         ],
-        "summary": "2 sentence overall summary of the reviews"
+        "summary": "exactly two sentences summarizing the reviews here"
     }}
     
-    Rules:
-    - return_risk level must be exactly: Low, Medium, or High
-    - return_risk score must be a number between 0 and 100
-    - Return ONLY the JSON, nothing else
-    
-    Here are the customer reviews:
+    Customer reviews to analyze:
     {reviews_text}
     """
 
@@ -54,15 +55,16 @@ def analyze_reviews(reviews_text):
         messages=[{"role": "user", "content": prompt}]
     )
 
-    raw = response.choices[0].message.content
+    raw = response.choices[0].message.content.strip()
 
-    # Clean response in case AI adds markdown code fences
-    raw = raw.strip()
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
             raw = raw[4:]
+    raw = raw.strip()
 
-    # Parse JSON string into Python dictionary
-    result = json.loads(raw)
-    return result
+    try:
+        result = json.loads(raw)
+        return result
+    except json.JSONDecodeError as e:
+        raise ValueError(f"AI returned invalid JSON: {e}\n\nRaw response:\n{raw}")

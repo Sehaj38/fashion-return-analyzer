@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from data_processor import load_reviews, get_reviews_text
 from analyzer import analyze_reviews
-
+import plotly.express as px
 
 st.set_page_config(
     page_title="Fashion Return Analyzer",
@@ -119,15 +119,12 @@ if uploaded_file is not None:
             </div>
         """, unsafe_allow_html=True)
 
-        # Progress bar as visual risk meter
         st.progress(score / 100)
 
         st.divider()
 
-        # ── Two Column Layout ──
         left, right = st.columns(2)
 
-        # ── Complaints ──
         with left:
             st.subheader("Top Complaints")
             for i, complaint in enumerate(result['top_complaints']):
@@ -138,7 +135,6 @@ if uploaded_file is not None:
                     </div>
                 """, unsafe_allow_html=True)
 
-        # ── Recommendations ──
         with right:
             st.subheader("Recommendations")
             for i, rec in enumerate(result['recommendations']):
@@ -148,6 +144,38 @@ if uploaded_file is not None:
                         <p style="color:#aaa; margin-top:5px;">{rec['action']}</p>
                     </div>
                 """, unsafe_allow_html=True)
+
+        st.divider()
+        st.subheader("Complaint Frequency Chart")
+
+        complaint_names = [c['complaint'] for c in result['top_complaints']]
+
+        chart_df = pd.DataFrame({
+            'Complaint': complaint_names,
+            'Severity Index': [3, 2, 1]
+        })
+
+        fig = px.bar(
+            chart_df,
+            x='Severity Index',
+            y='Complaint',
+            orientation='h',
+            color='Severity Index',
+            color_continuous_scale=['#00c853', '#ffa500', '#ff4b4b'],
+            title="Top Complaints by Severity"
+        )
+
+        fig.update_layout(
+            showlegend=False,
+            coloraxis_showscale=False,
+            paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white'),
+            height=250
+        )
+        
+        fig.update_xaxes(showticklabels=False)
+
+        st.plotly_chart(fig, width='stretch')
 
 else:
     st.info("Please upload a CSV file to get started.")
